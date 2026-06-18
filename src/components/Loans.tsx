@@ -235,8 +235,8 @@ export default function Loans({
         loan.id, 
         totalAmountToPay, 
         isPromoActive
-          ? `Trả một phần nợ gốc: Giảm gốc ${formatCurrency(amountToPay, profile.currency)} (Miễn phí duy trì đến hết 17/6/2026)${penaltyAmount > 0 ? ` + Phí phạt trễ hạn bắt buộc ${formatCurrency(penaltyAmount, profile.currency)}` : ''}`
-          : `Trả một phần nợ gốc: Giảm gốc ${formatCurrency(amountToPay, profile.currency)} + thu phí duy trì 15% trên dư nợ còn lại ${formatCurrency(partialFee, profile.currency)}${penaltyAmount > 0 ? ` + Phí phạt trễ hạn bắt buộc ${formatCurrency(penaltyAmount, profile.currency)}` : ''}`,
+          ? `Trả một phần nợ gốc: Giảm gốc ${formatCurrency(amountToPay, profile.currency)} (Miễn phí giảm gốc đến hết 17/6/2026)${penaltyAmount > 0 ? ` + Phí phạt trễ hạn bắt buộc ${formatCurrency(penaltyAmount, profile.currency)}` : ''}`
+          : `Trả một phần nợ gốc: Giảm gốc ${formatCurrency(amountToPay, profile.currency)} + thu Phí dịch vụ giảm gốc 15% dư nợ còn lại ${formatCurrency(partialFee, profile.currency)}${penaltyAmount > 0 ? ` + Phí phạt trễ hạn bắt buộc ${formatCurrency(penaltyAmount, profile.currency)}` : ''}`,
         false, // isExtension
         amountToPay, // principalAmount
         partialFee, // feeAmount
@@ -702,7 +702,7 @@ export default function Loans({
                                         </div>
                                         <div className="space-y-1 text-[10px] text-neutral-400 border-t border-neutral-800/60 pt-1.5">
                                           <div className="flex justify-between">
-                                            <span>• Phí duy trì dư nợ (15% nợ gốc còn lại):</span>
+                                            <span>• Phí dịch vụ giảm gốc (15% dư nợ còn lại):</span>
                                             <span className="font-mono text-emerald-400">
                                               {isPromoActive ? '0 đ (Miễn phí đến hết 17/6/2026)' : `+${formatCurrency(currentFeeAmount, profile.currency)}`}
                                             </span>

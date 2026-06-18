@@ -115,7 +115,7 @@ export default function Overview({ transactions, loans, profile, categoryIcons, 
   loans.forEach(l => {
     const extAmount = l.repayments
       .filter(r => (r.isExtension || r.note?.toLowerCase().includes('gia hạn') || r.note?.toLowerCase().includes('phí gia hạn')) && new Date(r.date) >= new Date('2026-06-18'))
-      .reduce((sum, r) => sum + r.amount, 0);
+      .reduce((sum, r) => sum + (r.feeAmount !== undefined ? r.feeAmount : r.amount - (r.penaltyAmount || 0)), 0);
     
     if (l.type === 'lend') {
       totalExtensionsCollected += extAmount;
@@ -128,14 +128,14 @@ export default function Overview({ transactions, loans, profile, categoryIcons, 
 
   totalExtensionsCollected = Math.max(totalExtensionsCollected, extTxCollected);
 
-  // C. Maintenance Fees (Phí duy trì 15% dư nợ gốc khi trả một phần) - Only after 2026-06-18
+  // C. Phí dịch vụ giảm gốc (15% dư nợ gốc khi trả một phần) - Only after 2026-06-18 (tên cũ: Phí duy trì)
   let totalMaintenanceFeesCollected = 0;
   loans.forEach(l => {
     const maintAmount = l.repayments
-      .filter(r => (r.feeAmount !== undefined || r.note?.toLowerCase().includes('phí duy trì') || r.note?.toLowerCase().includes('duy trì 15%')) && new Date(r.date) >= new Date('2026-06-18'))
+      .filter(r => !r.isExtension && !r.note?.toLowerCase().includes('gia hạn') && (r.feeAmount !== undefined || r.note?.toLowerCase().includes('phí duy trì') || r.note?.toLowerCase().includes('duy trì 15%') || r.note?.toLowerCase().includes('giảm gốc') || r.note?.toLowerCase().includes('phí giảm gốc')) && new Date(r.date) >= new Date('2026-06-18'))
       .reduce((sum, r) => {
         if (r.feeAmount !== undefined) return sum + r.feeAmount;
-        const match = r.note?.toLowerCase().match(/còn lại ([\d\.]+)\s*(?:đ|vnd)/i) || r.note?.toLowerCase().match(/trì ([\d\.]+)\s*(?:đ|vnd)/i);
+        const match = r.note?.toLowerCase().match(/còn lại ([\d\.]+)\s*(?:đ|vnd)/i) || r.note?.toLowerCase().match(/trì ([\d\.]+)\s*(?:đ|vnd)/i) || r.note?.toLowerCase().match(/gốc ([\d\.]+)\s*(?:đ|vnd)/i) || r.note?.toLowerCase().match(/giảm ([\d\.]+)\s*(?:đ|vnd)/i);
         if (match) {
           const parsed = parseInt(match[1].replace(/\./g, ''), 10);
           return sum + (isNaN(parsed) ? 150000 : parsed);
@@ -149,9 +149,9 @@ export default function Overview({ transactions, loans, profile, categoryIcons, 
   });
 
   const maintTxCollected = transactions
-    .filter(t => t.type === 'income' && t.note?.toLowerCase().includes('phí duy trì') && new Date(t.date) >= new Date('2026-06-18'))
+    .filter(t => t.type === 'income' && (t.note?.toLowerCase().includes('phí duy trì') || t.note?.toLowerCase().includes('phí giảm gốc') || t.note?.toLowerCase().includes('gốc')) && new Date(t.date) >= new Date('2026-06-18'))
     .reduce((sum, t) => {
-      const match = t.note?.toLowerCase().match(/còn lại ([\d\.]+)\s*(?:đ|vnd)/i) || t.note?.toLowerCase().match(/trì ([\d\.]+)\s*(?:đ|vnd)/i);
+      const match = t.note?.toLowerCase().match(/còn lại ([\d\.]+)\s*(?:đ|vnd)/i) || t.note?.toLowerCase().match(/trì ([\d\.]+)\s*(?:đ|vnd)/i) || t.note?.toLowerCase().match(/gốc ([\d\.]+)\s*(?:đ|vnd)/i) || t.note?.toLowerCase().match(/giảm ([\d\.]+)\s*(?:đ|vnd)/i);
       if (match) {
         const parsed = parseInt(match[1].replace(/\./g, ''), 10);
         return sum + (isNaN(parsed) ? 0 : parsed);
@@ -336,9 +336,9 @@ export default function Overview({ transactions, loans, profile, categoryIcons, 
               <HandHeart className="w-6 h-6 text-orange-400" />
             </div>
             <div>
-              <p className="text-xs text-neutral-500 font-mono uppercase mb-0.5">Tổng gốc cho vay đang hoạt động</p>
+              <p className="text-xs text-neutral-500 font-mono uppercase mb-0.5">Tổng gốc cho vay (Dư nợ còn lại)</p>
               <p className="text-xl font-bold text-white tracking-tight">
-                {formatCurrency(totalLentAmountActive, profile.currency)}
+                {formatCurrency(activeLentOutstanding, profile.currency)}
               </p>
             </div>
           </div>
@@ -376,7 +376,7 @@ export default function Overview({ transactions, loans, profile, categoryIcons, 
                 <span className="font-mono font-bold text-neutral-200">{formatCurrency(totalExtensionsCollected, profile.currency)}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-neutral-400">Phí duy trì (15%):</span>
+                <span className="text-neutral-400">Phí giảm gốc (15%):</span>
                 <span className="font-mono font-bold text-neutral-200">{formatCurrency(totalMaintenanceFeesCollected, profile.currency)}</span>
               </div>
               <div className="flex justify-between items-center">
