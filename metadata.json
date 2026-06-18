@@ -1,0 +1,6 @@
+{
+  "name": "Quản lý Chi tiêu - Cho vay",
+  "description": "Ứng dụng quản lý chi tiêu cá nhân và các khoản vay/cho vay chuyên nghiệp với giao diện Cam Đen cực kỳ tinh tế, hiện đại.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
