@@ -46,7 +46,7 @@ interface SettingsProps {
   onClearAll: () => void;
   onExportData: () => string;
   onImportData: (jsonStr: string) => boolean;
-  onManualSync: () => void;
+  onManualSync: (latestProfile?: UserProfile) => void;
 }
 
 export default function Settings({ 
@@ -137,7 +137,23 @@ export default function Settings({
 
   const handleManualSyncClick = () => {
     setSyncing(true);
-    onManualSync();
+
+    // Auto-parse inputs to capture values entered by user immediately before syncing
+    const rawDigits = monthlyBudget.replace(/\D/g, '');
+    const budgetNum = parseFloat(rawDigits) || 0;
+    const rawBalanceDigits = initialBalance.replace(/\D/g, '');
+    const balanceNum = parseFloat(rawBalanceDigits) || 0;
+
+    const latestProfile: UserProfile = {
+      name: name.trim() || 'Người dùng',
+      currency: 'VND',
+      monthlyBudget: budgetNum,
+      initialBalance: balanceNum
+    };
+
+    onUpdateProfile(latestProfile);
+    onManualSync(latestProfile);
+
     setTimeout(() => {
       setSyncing(false);
       setSyncSuccess(true);

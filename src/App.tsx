@@ -321,9 +321,9 @@ export default function App() {
     }
   };
 
-  const handleManualSync = () => {
+  const handleManualSync = (latestProfile?: UserProfile) => {
     // Explicitly force sync cache flush to absolute stability
-    localStorage.setItem('qlct_user_profile', JSON.stringify(profile));
+    localStorage.setItem('qlct_user_profile', JSON.stringify(latestProfile || profile));
     localStorage.setItem('qlct_transactions', JSON.stringify(transactions));
     localStorage.setItem('qlct_loans', JSON.stringify(loans));
     localStorage.setItem('qlct_expense_categories', JSON.stringify(expenseCategories));
