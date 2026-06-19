@@ -34,8 +34,41 @@ interface OverviewProps {
 }
 
 export default function Overview({ transactions, loans, profile, categoryIcons, onNavigate, onUpdateProfile }: OverviewProps) {
+  const currentMonthStr = new Date().toISOString().slice(0, 7); // "YYYY-MM"
   const [isEditingBalance, setIsEditingBalance] = useState(false);
   const [editBalanceVal, setEditBalanceVal] = useState('');
+  const [selectedMonth, setSelectedMonth] = useState<string>(currentMonthStr);
+
+  // Generate list of available months dynamically
+  const availableMonths = React.useMemo(() => {
+    const monthsSet = new Set<string>();
+    
+    // Always pre-populate with all 12 months of the current year (e.g., Jan-Dec 2026)
+    const currentYear = new Date().getFullYear();
+    for (let m = 1; m <= 12; m++) {
+      const monthStr = `${currentYear}-${String(m).padStart(2, '0')}`;
+      monthsSet.add(monthStr);
+    }
+    
+    // Add transaction months from other years if they exist
+    transactions.forEach(t => {
+      if (t.date) {
+        monthsSet.add(t.date.slice(0, 7)); // "YYYY-MM"
+      }
+    });
+    
+    // Add loan repayment months from other years if they exist
+    loans.forEach(l => {
+      l.repayments.forEach(r => {
+        if (r.date) {
+          monthsSet.add(r.date.slice(0, 7));
+        }
+      });
+    });
+    
+    // Convert to sorted array ascending (oldest/earlier first)
+    return Array.from(monthsSet).sort((a, b) => a.localeCompare(b));
+  }, [transactions, loans]);
 
   // Overdue calculation helper
   const calculateOverduePenalty = (l: Loan) => {
@@ -60,12 +93,25 @@ export default function Overview({ transactions, loans, profile, categoryIcons, 
     return { daysOverdue, penaltyAmount };
   };
 
-  // 1. Calculate Core Financial Metrics
-  const totalIncome = transactions
+  // 1. Calculate Core Financial Metrics - filtered by selected month if requested
+  const filteredTransactions = selectedMonth === 'all'
+    ? transactions
+    : transactions.filter(t => t.date && t.date.startsWith(selectedMonth));
+
+  const totalIncome = filteredTransactions
     .filter(t => t.type === 'income')
     .reduce((sum, t) => sum + t.amount, 0);
 
-  const totalExpense = transactions
+  const totalExpense = filteredTransactions
+    .filter(t => t.type === 'expense')
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  // Note: cashOnHand is a cumulative balance (total lifetime assets) so we should utilize lifetime inputs
+  const lifetimeIncome = transactions
+    .filter(t => t.type === 'income')
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const lifetimeExpense = transactions
     .filter(t => t.type === 'expense')
     .reduce((sum, t) => sum + t.amount, 0);
 
@@ -75,7 +121,7 @@ export default function Overview({ transactions, loans, profile, categoryIcons, 
     .reduce((sum, l) => sum + l.amount, 0);
 
   // Net Balance correctly adjusted for loan principals to prevent double counting
-  const cashOnHand = (profile.initialBalance ?? 100000000) + totalIncome - totalExpense - lentPrincipalDisbursed;
+  const cashOnHand = (profile.initialBalance ?? 100000000) + lifetimeIncome - lifetimeExpense - lentPrincipalDisbursed;
 
   const formatNumberWithDots = (raw: string) => {
     const digits = raw.replace(/\D/g, '');
@@ -87,7 +133,7 @@ export default function Overview({ transactions, loans, profile, categoryIcons, 
     const rawDigits = editBalanceVal.replace(/\D/g, '');
     const targetBalance = parseFloat(rawDigits);
     if (!isNaN(targetBalance) && targetBalance >= 0) {
-      const nextInitialBalance = Math.max(0, targetBalance - totalIncome + totalExpense + lentPrincipalDisbursed);
+      const nextInitialBalance = Math.max(0, targetBalance - lifetimeIncome + lifetimeExpense + lentPrincipalDisbursed);
       onUpdateProfile({
         ...profile,
         initialBalance: nextInitialBalance
@@ -115,6 +161,7 @@ export default function Overview({ transactions, loans, profile, categoryIcons, 
   loans.forEach(l => {
     const extAmount = l.repayments
       .filter(r => (r.isExtension || r.note?.toLowerCase().includes('gia hạn') || r.note?.toLowerCase().includes('phí gia hạn')) && new Date(r.date) >= new Date('2026-06-18'))
+      .filter(r => selectedMonth === 'all' || r.date.startsWith(selectedMonth))
       .reduce((sum, r) => sum + (r.feeAmount !== undefined ? r.feeAmount : r.amount - (r.penaltyAmount || 0)), 0);
     
     if (l.type === 'lend') {
@@ -124,15 +171,19 @@ export default function Overview({ transactions, loans, profile, categoryIcons, 
 
   const extTxCollected = transactions
     .filter(t => t.type === 'income' && (t.note?.toLowerCase().includes('phí gia hạn') || t.note?.toLowerCase().includes('thu phí gia hạn')) && new Date(t.date) >= new Date('2026-06-18'))
+    .filter(t => selectedMonth === 'all' || t.date.startsWith(selectedMonth))
     .reduce((sum, t) => sum + t.amount, 0);
 
-  totalExtensionsCollected = Math.max(totalExtensionsCollected, extTxCollected);
+  totalExtensionsCollected = selectedMonth === 'all'
+    ? Math.max(totalExtensionsCollected, extTxCollected)
+    : (totalExtensionsCollected || extTxCollected);
 
   // C. Phí dịch vụ giảm gốc (15% dư nợ gốc khi trả một phần) - Only after 2026-06-18 (tên cũ: Phí duy trì)
   let totalMaintenanceFeesCollected = 0;
   loans.forEach(l => {
     const maintAmount = l.repayments
       .filter(r => !r.isExtension && !r.note?.toLowerCase().includes('gia hạn') && (r.feeAmount !== undefined || r.note?.toLowerCase().includes('phí duy trì') || r.note?.toLowerCase().includes('duy trì 15%') || r.note?.toLowerCase().includes('giảm gốc') || r.note?.toLowerCase().includes('phí giảm gốc')) && new Date(r.date) >= new Date('2026-06-18'))
+      .filter(r => selectedMonth === 'all' || r.date.startsWith(selectedMonth))
       .reduce((sum, r) => {
         if (r.feeAmount !== undefined) return sum + r.feeAmount;
         const match = r.note?.toLowerCase().match(/còn lại ([\d\.]+)\s*(?:đ|vnd)/i) || r.note?.toLowerCase().match(/trì ([\d\.]+)\s*(?:đ|vnd)/i) || r.note?.toLowerCase().match(/gốc ([\d\.]+)\s*(?:đ|vnd)/i) || r.note?.toLowerCase().match(/giảm ([\d\.]+)\s*(?:đ|vnd)/i);
@@ -150,6 +201,7 @@ export default function Overview({ transactions, loans, profile, categoryIcons, 
 
   const maintTxCollected = transactions
     .filter(t => t.type === 'income' && (t.note?.toLowerCase().includes('phí duy trì') || t.note?.toLowerCase().includes('phí giảm gốc') || t.note?.toLowerCase().includes('gốc')) && new Date(t.date) >= new Date('2026-06-18'))
+    .filter(t => selectedMonth === 'all' || t.date.startsWith(selectedMonth))
     .reduce((sum, t) => {
       const match = t.note?.toLowerCase().match(/còn lại ([\d\.]+)\s*(?:đ|vnd)/i) || t.note?.toLowerCase().match(/trì ([\d\.]+)\s*(?:đ|vnd)/i) || t.note?.toLowerCase().match(/gốc ([\d\.]+)\s*(?:đ|vnd)/i) || t.note?.toLowerCase().match(/giảm ([\d\.]+)\s*(?:đ|vnd)/i);
       if (match) {
@@ -159,13 +211,16 @@ export default function Overview({ transactions, loans, profile, categoryIcons, 
       return sum;
     }, 0);
 
-  totalMaintenanceFeesCollected = Math.max(totalMaintenanceFeesCollected, maintTxCollected);
+  totalMaintenanceFeesCollected = selectedMonth === 'all'
+    ? Math.max(totalMaintenanceFeesCollected, maintTxCollected)
+    : (totalMaintenanceFeesCollected || maintTxCollected);
 
   // D. Penalties Collected/Paid from Overdue settles (excess over original amount or explicitly tracked)
   let totalPenaltiesCollected = 0;
   loans.forEach(l => {
     // 1. Explicit penaltyAmount fields
     const explicitPenaltySum = l.repayments
+      .filter(r => selectedMonth === 'all' || r.date.startsWith(selectedMonth))
       .reduce((sum, r) => sum + (r.penaltyAmount || 0), 0);
 
     // 2. Excess of non-extension repayments over l.amount (excess principal indicating penalty was paid)
@@ -175,14 +230,33 @@ export default function Overview({ transactions, loans, profile, categoryIcons, 
     
     let excessPenalty = 0;
     if (nonExtRepsAmount > l.amount) {
-      excessPenalty = nonExtRepsAmount - l.amount;
+      const excessTotal = nonExtRepsAmount - l.amount;
+      if (selectedMonth === 'all') {
+        excessPenalty = excessTotal;
+      } else {
+        let runningSum = 0;
+        l.repayments.forEach(r => {
+          if (!r.isExtension && !r.note?.toLowerCase().includes('gia hạn') && !r.note?.toLowerCase().includes('phí duy trì')) {
+            const prevSum = runningSum;
+            runningSum += r.amount;
+            if (runningSum > l.amount) {
+              const exceededPortion = runningSum - Math.max(l.amount, prevSum);
+              if (r.date.startsWith(selectedMonth)) {
+                excessPenalty += exceededPortion;
+              }
+            }
+          }
+        });
+      }
     }
 
     // 3. Highlight keywords in non-explicit records
     let textPenalty = 0;
     l.repayments.forEach(r => {
-      if (!r.penaltyAmount && (r.note?.toLowerCase().includes('phạt') || r.note?.toLowerCase().includes('trễ hạn'))) {
-        textPenalty += r.amount;
+      if (selectedMonth === 'all' || r.date.startsWith(selectedMonth)) {
+        if (!r.penaltyAmount && (r.note?.toLowerCase().includes('phạt') || r.note?.toLowerCase().includes('trễ hạn'))) {
+          textPenalty += r.amount;
+        }
       }
     });
 
@@ -195,19 +269,22 @@ export default function Overview({ transactions, loans, profile, categoryIcons, 
 
   const penaltyTxCollected = transactions
     .filter(t => t.type === 'income' && (t.note?.toLowerCase().includes('tiền phạt') || t.note?.toLowerCase().includes('phạt trễ hạn') || t.note?.toLowerCase().includes('phí phạt')))
+    .filter(t => selectedMonth === 'all' || t.date.startsWith(selectedMonth))
     .reduce((sum, t) => sum + t.amount, 0);
 
-  totalPenaltiesCollected = Math.max(totalPenaltiesCollected, penaltyTxCollected);
+  totalPenaltiesCollected = selectedMonth === 'all'
+    ? Math.max(totalPenaltiesCollected, penaltyTxCollected)
+    : (totalPenaltiesCollected || penaltyTxCollected);
 
-  // E. Pending/Accrueing Penalties on active overdue loans
+  // E. Pending/Accrueing Penalties on active overdue loans (Always show current overdue)
   const estimatedLentPenaltiesAccrued = loans
     .filter(l => l.type === 'lend' && l.status === 'active')
     .reduce((sum, l) => sum + calculateOverduePenalty(l).penaltyAmount, 0);
 
   // Monthly Budget Progress
-  const currentMonthStr = new Date().toISOString().slice(0, 7); // "2026-06"
+  const budgetMonthStr = selectedMonth === 'all' ? currentMonthStr : selectedMonth;
   const thisMonthExpenses = transactions
-    .filter(t => t.type === 'expense' && t.date.startsWith(currentMonthStr))
+    .filter(t => t.type === 'expense' && t.date.startsWith(budgetMonthStr))
     .reduce((sum, t) => sum + t.amount, 0);
 
   const budgetProgress = profile.monthlyBudget > 0 
@@ -224,6 +301,15 @@ export default function Overview({ transactions, loans, profile, categoryIcons, 
     .filter(l => l.daysRemaining <= 7) // Due within 7 days or overdue
     .sort((a, b) => a.daysRemaining - b.daysRemaining);
 
+  const displayedTransactions = selectedMonth === 'all'
+    ? transactions
+    : transactions.filter(t => t.date && t.date.startsWith(selectedMonth));
+
+  const budgetMonthYearText = (() => {
+    const [yr, mo] = budgetMonthStr.split('-');
+    return `tháng ${parseInt(mo, 10)}/${yr}`;
+  })();
+
   return (
     <div className="space-y-6 pb-24" id="overview-container">
       {/* Welcome header with profile info */}
@@ -239,6 +325,32 @@ export default function Overview({ transactions, loans, profile, categoryIcons, 
           <span className="text-xs font-mono text-neutral-300">
             {formatDate(new Date())}
           </span>
+        </div>
+      </div>
+
+      {/* Period Filter Dropdown */}
+      <div className="flex items-center gap-2 pb-1 bg-neutral-950" id="period-filter-bar">
+        <span className="text-xs text-neutral-400 font-mono uppercase tracking-wider">Lọc theo:</span>
+        <div className="relative">
+          <select
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
+            className="appearance-none bg-neutral-900 border border-neutral-800 rounded-xl pl-3 pr-8 py-1.5 text-xs font-mono text-white focus:outline-none focus:border-orange-500 cursor-pointer shadow-lg hover:border-neutral-700 transition-colors"
+          >
+            <option value="all" className="bg-neutral-950 text-white">📅 Tất cả các tháng</option>
+            {availableMonths.map(m => {
+              const [yr, mo] = m.split('-');
+              const shortYr = yr.slice(-2);
+              return (
+                <option key={m} value={m} className="bg-neutral-950 text-white">
+                  📅 {mo}/{shortYr}
+                </option>
+              );
+            })}
+          </select>
+          <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-400">
+            <svg xmlns="http://www.w3.org/2500/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-chevron-down"><path d="m6 9 6 6 6-6"/></svg>
+          </div>
         </div>
       </div>
 
@@ -306,7 +418,7 @@ export default function Overview({ transactions, loans, profile, categoryIcons, 
           <div className="space-y-1">
             <div className="flex items-center gap-1.5 text-neutral-500">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              <p className="text-xs font-mono">TỔNG THU NHẬP</p>
+              <p className="text-xs font-mono uppercase">Thu nhập {selectedMonth === 'all' ? 'tất cả' : 'trong tháng'}</p>
             </div>
             <p className="text-lg font-semibold text-emerald-400 font-display">
               {formatCurrency(totalIncome, profile.currency)}
@@ -315,7 +427,7 @@ export default function Overview({ transactions, loans, profile, categoryIcons, 
           <div className="space-y-1">
             <div className="flex items-center gap-1.5 text-neutral-500">
               <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
-              <p className="text-xs font-mono">TỔNG CHI TIÊU</p>
+              <p className="text-xs font-mono uppercase">Chi tiêu {selectedMonth === 'all' ? 'tất cả' : 'trong tháng'}</p>
             </div>
             <p className="text-lg font-semibold text-orange-400 font-display">
               {formatCurrency(totalExpense, profile.currency)}
@@ -357,6 +469,9 @@ export default function Overview({ transactions, loans, profile, categoryIcons, 
             </h3>
             <p className="text-[10px] text-neutral-400 mt-0.5">Tổng hợp phí dịch vụ và phạt quá hạn từ các hồ sơ</p>
           </div>
+          <span className="text-[10px] font-mono bg-neutral-900/80 border border-neutral-800 text-neutral-300 px-2.5 py-1 rounded-full uppercase shrink-0">
+            {selectedMonth === 'all' ? 'Tất cả' : budgetMonthYearText}
+          </span>
         </div>
 
         <div id="report-grid">
@@ -402,7 +517,7 @@ export default function Overview({ transactions, loans, profile, categoryIcons, 
       {/* Monthly Budget Progress Alert */}
       <div className="bg-neutral-900/40 border border-neutral-800/80 rounded-2xl p-4 space-y-3" id="budget-progress-block">
         <div className="flex justify-between items-center text-xs">
-          <span className="text-neutral-400 font-medium">Ngân sách chi tiêu tháng 6</span>
+          <span className="text-neutral-400 font-medium">Ngân sách chi tiêu {budgetMonthYearText}</span>
           <span className="text-white font-mono font-semibold">
             {formatCurrency(thisMonthExpenses, profile.currency)} / {formatCurrency(profile.monthlyBudget, profile.currency)}
           </span>
@@ -487,7 +602,9 @@ export default function Overview({ transactions, loans, profile, categoryIcons, 
       {/* Recent Activity Mini Feed */}
       <div className="space-y-3" id="recent-activities">
         <div className="flex justify-between items-center">
-          <h3 className="text-sm font-semibold text-white uppercase tracking-wider font-mono">Giao dịch gần đây</h3>
+          <h3 className="text-sm font-semibold text-white uppercase tracking-wider font-mono">
+            Giao dịch {selectedMonth === 'all' ? 'gần đây' : budgetMonthYearText}
+          </h3>
           <button 
             onClick={() => onNavigate('expenses')}
             className="text-xs text-orange-500 hover:text-orange-400 transition-colors font-semibold"
@@ -497,13 +614,13 @@ export default function Overview({ transactions, loans, profile, categoryIcons, 
           </button>
         </div>
 
-        {transactions.length === 0 ? (
+        {displayedTransactions.length === 0 ? (
           <div className="text-center py-8 bg-neutral-900/20 border border-neutral-800/80 rounded-2xl" id="no-tx-placeholder">
             <p className="text-sm text-neutral-500">Chưa có giao dịch nào được ghi nhận.</p>
           </div>
         ) : (
           <div className="space-y-2" id="recent-tx-list">
-            {transactions.slice(0, 4).map(tx => (
+            {displayedTransactions.slice(0, 4).map(tx => (
               <div 
                 key={tx.id} 
                 className="flex items-center justify-between p-3.5 bg-neutral-900/60 hover:bg-neutral-900 border border-neutral-800/70 rounded-xl transition-all"
