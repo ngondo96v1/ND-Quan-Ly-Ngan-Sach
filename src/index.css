@@ -22,3 +22,16 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #ea580c;
 }
+
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+  background-color: black;
+  margin: 0;
+  padding: 0;
+}
+
+/* Eliminate tap highlighters on mobile Safari */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
