@@ -287,9 +287,9 @@ export default function Loans({
               <HandHeart className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-xs uppercase font-mono text-neutral-500">TỔNG GỐC CHO VAY ĐANG HOẠT ĐỘNG</p>
+              <p className="text-xs uppercase font-mono text-neutral-500">TỔNG GỐC CHO VAY (DƯ NỢ CÒN LẠI)</p>
               <p className="text-2xl font-bold text-white font-display mt-0.5">
-                {formatCurrency(totalLentAmountActive, profile.currency)}
+                {formatCurrency(totalLentActive, profile.currency)}
               </p>
             </div>
           </div>
