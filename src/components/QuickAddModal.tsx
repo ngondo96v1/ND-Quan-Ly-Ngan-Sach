@@ -33,6 +33,15 @@ export default function QuickAddModal({
   onAddLoan,
   currencySymbol
 }: QuickAddModalProps) {
+  // Helper to get local date in YYYY-MM-DD format
+  const getTodayString = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   // Tabs: 0: Chi tiêu, 1: Thu nhập, 2: Khoản vay
   const [activeTab, setActiveTab] = useState<0 | 1 | 2>(0);
   
@@ -40,14 +49,14 @@ export default function QuickAddModal({
   const [txType, setTxType] = useState<TransactionType>('expense');
   const [txAmount, setTxAmount] = useState('');
   const [txCategory, setTxCategory] = useState('');
-  const [txDate, setTxDate] = useState(new Date().toISOString().slice(0, 10));
+  const [txDate, setTxDate] = useState(getTodayString());
   const [txNote, setTxNote] = useState('');
 
   // Loan input states
   const [loanType, setLoanType] = useState<LoanType>('lend'); // Always default to 'lend' as requested
   const [loanPerson, setLoanPerson] = useState('');
   const [loanAmount, setLoanAmount] = useState('');
-  const [loanDate, setLoanDate] = useState(new Date().toISOString().slice(0, 10));
+  const [loanDate, setLoanDate] = useState(getTodayString());
   const [loanDueDate, setLoanDueDate] = useState('');
   const [loanNote, setLoanNote] = useState('');
 
@@ -149,6 +158,9 @@ export default function QuickAddModal({
   // Sync state if defaultType parameter changes
   useEffect(() => {
     if (isOpen) {
+      const today = getTodayString();
+      setTxDate(today);
+      setLoanDate(today);
       if (defaultType === 'expense') {
         setActiveTab(0);
         setTxType('expense');
