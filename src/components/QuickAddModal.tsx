@@ -389,18 +389,18 @@ export default function QuickAddModal({
               {/* Date selection */}
               <div className="space-y-1.5">
                 <label className="text-xs text-neutral-400 font-medium font-sans">Ngày thực hiện</label>
-                <div className="relative">
-                  <Calendar className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-450 z-10 pointer-events-none" />
+                <div className="relative w-full bg-neutral-950 border border-neutral-800 rounded-xl flex items-center pl-10 pr-4 py-2.5 focus-within:border-orange-500 transition-colors">
+                  <Calendar className="w-4 h-4 absolute left-3.5 text-neutral-450 pointer-events-none" />
+                  <span className="text-xs font-mono text-white select-none">
+                    {renderFriendlyDate(txDate) || 'Chọn ngày'}
+                  </span>
                   <input 
                     type="date"
                     required
                     value={txDate}
                     onChange={(e) => setTxDate(e.target.value)}
-                    className="w-full bg-neutral-950 border border-neutral-800 rounded-xl pl-10 pr-4 py-2.5 text-transparent focus:text-transparent focus:outline-none focus:border-orange-500 text-xs relative z-0 cursor-pointer"
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
                   />
-                  <div className="absolute left-10 top-1/2 -translate-y-1/2 text-xs font-mono text-white pointer-events-none z-10">
-                    {renderFriendlyDate(txDate) || 'Chọn ngày'}
-                  </div>
                 </div>
               </div>
 
@@ -533,35 +533,36 @@ export default function QuickAddModal({
               {/* Date setup */}
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1.5">
-                  <label className="text-xs text-neutral-400 font-medium font-sans">Ngày vay</label>
-                  <div className="relative">
+                  <div className="flex items-center min-h-[20px] pb-0.5">
+                    <label className="text-xs text-neutral-400 font-medium font-sans">Ngày vay</label>
+                  </div>
+                  <div className="relative w-full bg-neutral-950 border border-neutral-800 rounded-xl flex items-center px-2.5 py-2.5 focus-within:border-orange-500 transition-colors">
+                    <span className="text-xs font-mono text-white select-none">
+                      {renderFriendlyDate(loanDate) || 'Chọn ngày'}
+                    </span>
                     <input 
                       type="date"
                       required
                       value={loanDate}
                       onChange={(e) => setLoanDate(e.target.value)}
-                      className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-2.5 py-2 text-transparent focus:text-transparent focus:outline-none focus:border-orange-500 text-xs cursor-pointer z-0"
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
                     />
-                    <div className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-white pointer-events-none z-10">
-                      {renderFriendlyDate(loanDate) || 'Chọn ngày'}
-                    </div>
                   </div>
                 </div>
                 <div className="space-y-1.5">
-                  <div className="flex justify-between items-center">
+                  <div className="flex items-center min-h-[20px] pb-0.5">
                     <label className="text-xs text-neutral-400 font-medium font-sans">Hạn trả (Chu kỳ)</label>
-                    <span className="text-[9px] text-orange-400 font-semibold uppercase">Tự tính 1/tháng</span>
                   </div>
-                  <div className="relative">
+                  <div className="relative w-full bg-neutral-950 border border-neutral-800 rounded-xl flex items-center px-2.5 py-2.5 focus-within:border-orange-500 transition-colors">
+                    <span className="text-xs font-mono text-white select-none">
+                      {renderFriendlyDate(loanDueDate) || 'Chọn ngày'}
+                    </span>
                     <input 
                       type="date"
                       value={loanDueDate}
                       onChange={(e) => setLoanDueDate(e.target.value)}
-                      className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-2.5 py-2 text-transparent focus:text-transparent focus:outline-none focus:border-orange-500 text-xs cursor-pointer z-0"
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
                     />
-                    <div className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-white pointer-events-none z-10">
-                      {renderFriendlyDate(loanDueDate) || 'Chọn ngày'}
-                    </div>
                   </div>
                 </div>
               </div>

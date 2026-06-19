@@ -199,7 +199,9 @@ export default function EditLoanModal({
           {/* Date Picker Fields */}
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1.5">
-              <label className="text-xs text-neutral-400 font-medium">Ngày vay</label>
+              <div className="flex items-center min-h-[20px] pb-0.5">
+                <label className="text-xs text-neutral-400 font-medium">Ngày vay</label>
+              </div>
               <input 
                 type="date"
                 required
@@ -209,12 +211,12 @@ export default function EditLoanModal({
               />
             </div>
             <div className="space-y-1.5">
-              <div className="flex justify-between items-center">
-                <label className="text-xs text-neutral-400 font-medium">Hạn trả</label>
+              <div className="flex justify-between items-center min-h-[20px] flex-wrap gap-x-1 gap-y-0.5 pb-0.5">
+                <label className="text-xs text-neutral-400 font-medium whitespace-nowrap">Hạn trả</label>
                 <button
                   type="button"
                   onClick={syncDueDate}
-                  className="text-[9px] text-orange-400 hover:text-orange-300 font-semibold cursor-pointer underline"
+                  className="text-[9px] text-orange-400 hover:text-orange-300 font-semibold cursor-pointer underline whitespace-nowrap"
                   title="Tính hạn tự động dựa trên quy tắc chu kỳ 30 ngày (ngày 1 hàng tháng)"
                 >
                   Tự tính hạn
