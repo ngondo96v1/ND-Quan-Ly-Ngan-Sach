@@ -235,7 +235,7 @@ export default function Loans({
         loan.id, 
         totalAmountToPay, 
         isPromoActive
-          ? `Trả một phần nợ gốc: Giảm gốc ${formatCurrency(amountToPay, profile.currency)} (Miễn phí giảm gốc đến hết 17/6/2026)${penaltyAmount > 0 ? ` + Phí phạt trễ hạn bắt buộc ${formatCurrency(penaltyAmount, profile.currency)}` : ''}`
+          ? `Trả một phần nợ gốc: Giảm gốc ${formatCurrency(amountToPay, profile.currency)} (Miễn phí giảm gốc đến hết 17/06/26)${penaltyAmount > 0 ? ` + Phí phạt trễ hạn bắt buộc ${formatCurrency(penaltyAmount, profile.currency)}` : ''}`
           : `Trả một phần nợ gốc: Giảm gốc ${formatCurrency(amountToPay, profile.currency)} + thu Phí dịch vụ giảm gốc 15% dư nợ còn lại ${formatCurrency(partialFee, profile.currency)}${penaltyAmount > 0 ? ` + Phí phạt trễ hạn bắt buộc ${formatCurrency(penaltyAmount, profile.currency)}` : ''}`,
         false, // isExtension
         amountToPay, // principalAmount
@@ -250,7 +250,7 @@ export default function Loans({
         loan.id, 
         totalAmountToPay, 
         isPromoActive
-          ? `Gia hạn nợ: Miễn phí dịch vụ bảo hiểm gia hạn đến hết 17/6/2026${penaltyAmount > 0 ? ` + Phí phạt trễ hạn bắt buộc ${formatCurrency(penaltyAmount, profile.currency)}` : ''}`
+          ? `Gia hạn nợ: Miễn phí dịch vụ bảo hiểm gia hạn đến hết 17/06/26${penaltyAmount > 0 ? ` + Phí phạt trễ hạn bắt buộc ${formatCurrency(penaltyAmount, profile.currency)}` : ''}`
           : `Gia hạn nợ: Phí dịch vụ bảo hiểm ${formatCurrency(extensionFee, profile.currency)}${penaltyAmount > 0 ? ` + Phí phạt trễ hạn bắt buộc ${formatCurrency(penaltyAmount, profile.currency)}` : ''}`,
         true, // isExtension trigger
         0, // principalAmount
@@ -704,7 +704,7 @@ export default function Loans({
                                           <div className="flex justify-between">
                                             <span>• Phí dịch vụ giảm gốc (15% dư nợ còn lại):</span>
                                             <span className="font-mono text-emerald-400">
-                                              {isPromoActive ? '0 đ (Miễn phí đến hết 17/6/2026)' : `+${formatCurrency(currentFeeAmount, profile.currency)}`}
+                                              {isPromoActive ? '0 đ (Miễn phí đến hết 17/06/26)' : `+${formatCurrency(currentFeeAmount, profile.currency)}`}
                                             </span>
                                           </div>
                                           <div className="flex justify-between">
@@ -749,7 +749,7 @@ export default function Loans({
                                         <div className="flex justify-between">
                                           <span>• Phí dịch vụ gia hạn (15% gốc ban đầu):</span>
                                           <span className="font-mono text-emerald-400">
-                                            {isPromoActive ? '0 đ (Miễn phí đến hết 17/6/2026)' : `+${formatCurrency(extensionFee, profile.currency)}`}
+                                            {isPromoActive ? '0 đ (Miễn phí đến hết 17/06/26)' : `+${formatCurrency(extensionFee, profile.currency)}`}
                                           </span>
                                         </div>
                                         <div className="flex justify-between">

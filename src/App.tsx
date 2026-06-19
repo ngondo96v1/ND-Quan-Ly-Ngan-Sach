@@ -186,7 +186,7 @@ export default function App() {
 
   const [incomeCategories, setIncomeCategories] = useState<string[]>(() => {
     const saved = localStorage.getItem('qlct_income_categories');
-    return saved ? JSON.parse(saved) : ['Lương', 'Làm thêm', 'Đầu tư', 'Quà tặng'];
+    return saved ? JSON.parse(saved) : ['Lương', 'NDV', 'Đầu tư', 'Quà tặng', 'Làm thêm'];
   });
 
   const [categoryIcons, setCategoryIcons] = useState<Record<string, string>>(() => {
@@ -233,6 +233,15 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('qlct_people', JSON.stringify(people));
   }, [people]);
+
+  // Migration: ensure 'NDV' always exists in incomeCategories for existing users
+  useEffect(() => {
+    if (!incomeCategories.includes('NDV')) {
+      const updated = ['NDV', ...incomeCategories.filter(c => c !== 'NDV')];
+      setIncomeCategories(updated);
+      localStorage.setItem('qlct_income_categories', JSON.stringify(updated));
+    }
+  }, [incomeCategories]);
 
   // One-time automatic migration to import requested loans into existing localStorage
   useEffect(() => {
@@ -337,7 +346,7 @@ export default function App() {
     setTransactions(INITIAL_TRANSACTIONS);
     setLoans(INITIAL_LOANS);
     setExpenseCategories(['Ăn uống', 'Mua sắm', 'Hóa đơn', 'Di chuyển', 'Giải trí', 'Sức khỏe', 'Giáo dục']);
-    setIncomeCategories(['Lương', 'Làm thêm', 'Đầu tư', 'Quà tặng']);
+    setIncomeCategories(['Lương', 'NDV', 'Đầu tư', 'Quà tặng', 'Làm thêm']);
     setCategoryIcons({});
     setPeople(['Trần Hoàng Nam', 'Chị Mai (Đồng nghiệp)', 'Lê Thùy Chi', 'Minh Nhựt', 'Thái Anh', 'Huỳnh Công Tuấn', 'Hào Eco', 'Nguyễn Thị Thắm', 'Dương', 'Linh Hí', 'Chú Quốc', 'Hiệp Nguyễn', 'Chị Tuyền']);
     setActiveTab('overview');
@@ -412,6 +421,71 @@ export default function App() {
     }
 
     setTransactions(prev => prev.filter(t => t.id !== id));
+  };
+
+  const handleEditTransaction = (id: string, updatedTx: { amount: number; category: string; date: string; note: string }) => {
+    // 1. Fetch current transaction details
+    const tx = transactions.find(t => t.id === id);
+    if (!tx) return;
+
+    // 2. Propagate updates to corresponding loan/repayments if linked
+    if (tx.loanId && tx.repaymentId) {
+      const { loanId, repaymentId } = tx;
+      
+      setLoans(prev => prev.map(l => {
+        if (l.id === loanId) {
+          if (repaymentId === 'upfront-fee') {
+            return l; // Not in repayments array
+          }
+
+          const updatedRepayments = l.repayments.map(r => {
+            if (r.id === repaymentId) {
+              let nextPrincipal = r.principalAmount;
+              if (r.isExtension) {
+                nextPrincipal = 0;
+              } else if (r.principalAmount !== undefined) {
+                const diff = updatedTx.amount - r.amount;
+                nextPrincipal = Math.max(0, r.principalAmount + diff);
+              }
+
+              return {
+                ...r,
+                amount: updatedTx.amount,
+                date: updatedTx.date,
+                note: updatedTx.note,
+                principalAmount: nextPrincipal
+              };
+            }
+            return r;
+          });
+
+          // Recalculate l.paidAmount
+          const totalPaid = updatedRepayments.reduce((sum, rep) => {
+            if (rep.isExtension) return sum;
+            const reduced = rep.principalAmount !== undefined ? rep.principalAmount : rep.amount;
+            return sum + reduced;
+          }, 0);
+
+          const nextStatus = totalPaid >= l.amount ? 'paid' : 'active';
+
+          return {
+            ...l,
+            paidAmount: Math.min(Math.max(0, totalPaid), l.amount),
+            status: nextStatus,
+            repayments: updatedRepayments
+          };
+        }
+        return l;
+      }));
+    }
+
+    // 3. Update transactions state
+    setTransactions(prev => prev.map(t => {
+      if (t.id === id) {
+        return { ...t, ...updatedTx };
+      }
+      return t;
+    }));
   };
 
   // Actions: Loans
@@ -536,7 +610,7 @@ export default function App() {
       handleAddTransaction({
         type: 'income',
         amount: amount,
-        category: 'Làm thêm', // category for loan collection
+        category: 'NDV', // category for loan collection
         date: new Date().toISOString().slice(0, 10),
         note: isExtension
           ? `Thu phí gia hạn từ ${targetLoan.person}: ${note}`
@@ -916,6 +990,7 @@ export default function App() {
                       incomeCategories={incomeCategories}
                       categoryIcons={categoryIcons}
                       onDeleteTransaction={handleDeleteTransaction}
+                      onEditTransaction={handleEditTransaction}
                       onOpenQuickAdd={(type) => handleOpenQuickAdd(type)}
                     />
                   </div>
@@ -930,6 +1005,7 @@ export default function App() {
                       incomeCategories={incomeCategories}
                       categoryIcons={categoryIcons}
                       onDeleteTransaction={handleDeleteTransaction}
+                      onEditTransaction={handleEditTransaction}
                       onOpenQuickAdd={(type) => handleOpenQuickAdd(type)}
                     />
                   </div>

@@ -91,7 +91,7 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
     id: 'tx-loan1-rep1',
     type: 'income',
     amount: 2000000,
-    category: 'Làm thêm',
+    category: 'NDV',
     date: '2026-06-10',
     note: 'Thu nợ từ Trần Hoàng Nam: Trả đợt 1',
     loanId: 'loan-1',
@@ -111,7 +111,7 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
     id: 'tx-loan3-rep1',
     type: 'income',
     amount: 1500000,
-    category: 'Làm thêm',
+    category: 'NDV',
     date: '2026-05-30',
     note: 'Thu nợ từ Lê Thùy Chi: Chuyển khoản trả hết',
     loanId: 'loan-3',
@@ -292,9 +292,10 @@ export const EXPENSE_CATEGORIES = [
 
 export const INCOME_CATEGORIES = [
   'Lương',
-  'Làm thêm',
+  'NDV',
   'Đầu tư',
   'Quà tặng',
+  'Làm thêm',
 ];
 
 export function formatCurrency(amount: number, currency: 'VND' | 'USD'): string {

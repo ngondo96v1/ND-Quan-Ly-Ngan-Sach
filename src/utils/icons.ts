@@ -98,6 +98,7 @@ export const DEFAULT_CATEGORY_ICONS: Record<string, string> = {
   'Làm thêm': 'Clock',
   'Đầu tư': 'TrendingUp',
   'Quà tặng': 'Gift',
+  'NDV': 'Coins',
 };
 
 interface GetIconProps {
